@@ -10,12 +10,16 @@ use stdClass;
 
 class AuthController extends Controller
 {
-    private function _sendRefreshToken(Request $request) {
-        $user = $request->user(); // or Auth::user
-
+    private function _forgetRefreshToken(Request $request) {
         if (Cookie::get('refreshToken')) {
             Cookie::queue(Cookie::forget('refreshToken'));
         }
+    }
+
+    private function _sendRefreshToken(Request $request) {
+        $user = $request->user(); // or Auth::user
+
+        $this->_forgetRefreshToken($request);
 
         Cookie::queue(
             Cookie::make(
@@ -73,6 +77,8 @@ class AuthController extends Controller
     public function logout(Request $request) {
         $user = $request->user();
         $user->tokens()->delete();
+
+        $this->_forgetRefreshToken($request);
         return response()->json(new stdClass, 200);
     }
 }
