@@ -6,6 +6,7 @@ use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Cookie;
 use App\Exceptions\HttpException;
+use App\Helpers\PerfectValidator;
 use stdClass;
 
 class AuthController extends Controller
@@ -44,15 +45,9 @@ class AuthController extends Controller
     }
 
     public function login(Request $request) {
-        $credentials = $request->validate([
-            'email' => ['required', 'string', 'email'],
-            'password' => ['required', 'string', 'min:8']
-        ], [
-            'email.required' => 'EMAIL_REQUIRED',
-            'email.string' => 'EMAIL_INVALID',
-            'email.email' => 'EMAIL_INVALID',
-            'password.string' => 'PASSWORD_INVALID',
-            'password.required' => 'PASSWORD_REQUIRED'
+        $credentials = PerfectValidator::validate($request, [
+            'email' => 'User.email',
+            'password' => 'User.password'
         ]);
 
         if (Auth::attempt($credentials)) {
