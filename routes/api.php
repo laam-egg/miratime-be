@@ -14,6 +14,22 @@ use Illuminate\Support\Facades\Route;
 |
 */
 
+use App\Http\Controllers\AuthController;
+use App\Http\Controllers\UserController;
+
+
+Route::prefix('/auth')->group(function () {
+    Route::post('/login', [AuthController::class, 'login']);
+    Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('auth:sanctum');
+    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
+});
+
+Route::prefix('/user')->group(function () {
+    Route::post('/', [UserController::class, 'signup']);
+    Route::post('/signup', [UserController::class, 'signup']);
+    Route::get('/', [UserController::class, 'index'])->middleware('auth:sanctum');
+});
+
 Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
     return $request->user();
 });
