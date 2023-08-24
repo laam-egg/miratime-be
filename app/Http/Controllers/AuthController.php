@@ -27,7 +27,7 @@ class AuthController extends Controller
                 'refreshToken',
                 $user->createToken('refreshToken')->plainTextToken,
                 0, // 60 * 24 * 365, // minutes to expire
-                '/api/auth/refresh',
+                route('auth.refresh'),
                 // TODO: Set the following values based on environment (dev vs prod):
                 null,  // domain
                 false, // secure
