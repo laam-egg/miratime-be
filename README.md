@@ -13,7 +13,8 @@ php artisan app:jwt
 ```
 APP_ENV=...<local, testing or production>
 APP_DEBUG=...<true or false>
-APP_URL=...<The application host URL>
+APP_URL=...<The application host (Backend) URL>
+APP_FRONTEND_URL=...<URL to the Frontend of the application>
 
 DB_CONNECTION=...
 DB_HOST=...
@@ -21,4 +22,10 @@ DB_PORT=...
 DB_DATABASE=...
 DB_USERNAME=...
 DB_PASSWORD=...
+```
+
+In production, the application's frontend and backend are currently hosted on these domains:
+```
+APP_URL=https://miratime-api.vutunglam.id.vn
+APP_FRONTEND_URL=https://miratime.vutunglam.id.vn
 ```
