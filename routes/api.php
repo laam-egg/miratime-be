@@ -18,18 +18,26 @@ use App\Http\Controllers\AuthController;
 use App\Http\Controllers\UserController;
 
 
-Route::prefix('/auth')->group(function () {
-    Route::post('/login', [AuthController::class, 'login']);
-    Route::post('/refresh', [AuthController::class, 'refresh'])->middleware('auth:sanctum')->name('auth.refresh');
-    Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum');
-});
+Route::middleware('api')->group(function () {
+    Route::name('auth.')->prefix('/auth')->group(function () {
+        Route::any('/', function () {
+            return response()->json([
+                'status' => 200,
+                'message' => 'The purpose of this route is to get its path set as the path of the refresh token cookie, so that the cookie can be accessed by all routes in this AUTH route group. (1) (2) THIS ROUTE HAS NO OTHER PURPOSE SO IT DOES NOT MEAN TO BE CONSUMED BY THE FRONTEND OR ANY THIRD-PARTY CLIENT.',
+                'references' => [
+                    '1' => 'In Laravel, we call route(<route_name>) to get the path of a route.',
+                    '2' => 'https://developer.mozilla.org/en-US/docs/Web/HTTP/Cookies#path_attribute',
+                ],
+            ]);
+        })->name('index');
+        Route::post('/login', [AuthController::class, 'login'])->name('login');
+        Route::post('/refresh', [AuthController::class, 'refresh'])->name('refresh');
+        Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
+    });
 
-Route::prefix('/user')->group(function () {
-    Route::post('/', [UserController::class, 'signup']);
-    Route::post('/signup', [UserController::class, 'signup']);
-    Route::get('/', [UserController::class, 'index'])->middleware('auth:sanctum');
-});
-
-Route::middleware('auth:sanctum')->get('/user', function (Request $request) {
-    return $request->user();
+    Route::name('user')->prefix('/user')->group(function () {
+        Route::post('/', [UserController::class, 'signup']);
+        Route::post('/signup', [UserController::class, 'signup']);
+        Route::get('/', [UserController::class, 'index'])->middleware('auth:sanctum');
+    });
 });
