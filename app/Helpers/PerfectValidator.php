@@ -17,13 +17,18 @@ class PerfectValidator {
 
         foreach ($fields as $fieldName => $fieldGlobalName) {
             switch ($fieldGlobalName) {
+                case 'User.email.new':
+                    $rules[$fieldName] = ['unique:users,email'];
+                    _merge($messages, [
+                        "$fieldName.unique" => 'EMAIL_TAKEN'
+                    ]);
                 case 'User.email':
-                    $rules[$fieldName] = ['required', 'string', 'email', 'unique:users,email'];
+                    if (!array_key_exists($fieldName, $rules)) $rules[$fieldName] = [];
+                    _merge($rules[$fieldName], ['required', 'string', 'email']);
                     _merge($messages, [
                         "$fieldName.required" => 'EMAIL_REQUIRED',
                         "$fieldName.string" => 'EMAIL_INVALID',
-                        "$fieldName.email" => 'EMAIL_INVALID',
-                        "$fieldName.unique" => 'EMAIL_TAKEN'
+                        "$fieldName.email" => 'EMAIL_INVALID'
                     ]);
                     break;
                 
