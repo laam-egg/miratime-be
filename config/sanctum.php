@@ -46,7 +46,7 @@ return [
     |
     */
 
-    'expiration' => null,
+    'expiration' => 30, // Every 30 minutes, the user agent should refresh access token.
 
     /*
     |--------------------------------------------------------------------------
