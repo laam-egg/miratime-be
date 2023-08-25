@@ -4,44 +4,27 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
+// In API routes, Cookie facade doesn't work.
+// https://laracasts.com/discuss/channels/laravel/cookiequeue-not-attaching-to-response
 use Illuminate\Support\Facades\Cookie;
 use App\Exceptions\HttpException;
 use App\Helpers\PerfectValidator;
+use App\Helpers\RefreshTokenManager;
+use App\Models\User;
 use stdClass;
 
 class AuthController extends Controller
 {
-    private function _forgetRefreshToken(Request $request) {
-        if (Cookie::get('refreshToken')) {
-            Cookie::queue(Cookie::forget('refreshToken'));
-        }
+    private function _issueAccessToken(User $user): string {
+        return $user->createToken('accessToken')->plainTextToken;
     }
 
-    private function _sendRefreshToken(Request $request) {
-        $user = $request->user(); // or Auth::user
+    private function _verifyRefreshToken(Request $request): User {
+        $refreshToken = $request->cookie('refreshToken');
+        if (!$refreshToken) throw new HttpException(401, 'UNAUTHENTICATED');
 
-        $this->_forgetRefreshToken($request);
-
-        Cookie::queue(
-            Cookie::make(
-                'refreshToken',
-                $user->createToken('refreshToken')->plainTextToken,
-                0, // 60 * 24 * 365, // minutes to expire
-                route('auth.refresh'),
-                // TODO: Set the following values based on environment (dev vs prod):
-                null,  // domain
-                false, // secure
-                true   // httpOnly
-            )
-        );
-    }
-
-    private function _respondAccessToken(Request $request) {
-        $user = $request->user();
-
-        return response()->json([
-            'accessToken' => $user->createToken('accessToken')->plainTextToken
-        ], 200);
+        $user = RefreshTokenManager::verify($request, $refreshToken);
+        return $user;
     }
 
     public function login(Request $request) {
@@ -51,29 +34,61 @@ class AuthController extends Controller
         ]);
 
         if (Auth::attempt($credentials)) {
-            $this->_sendRefreshToken($request);
-            return $this->_respondAccessToken($request);
+            $user = $request->user();
+
+            $accessToken = $this->_issueAccessToken($user);
+
+            $refreshToken = RefreshTokenManager::issueAuth($request);
+    
+            return response()->json(compact('accessToken'), 200)
+            ->cookie('refreshToken', $refreshToken,
+                0,
+                null,
+                // route('auth.index'), // so that the cookie can be read by all auth routes, including auth.login, auth.refresh, and auth.logout. For more info, visit $APP_URL/api/auth.
+                // TODO: The following arguments should be changed in prod:
+                null,      // domain
+                false,     // secure
+                true       // httpOnly
+            );
         }
 
         throw new HttpException(401, 'CREDENTIALS_INVALID');
     }
 
     /**
-     * Refreshes both access and refresh tokens
+     * Yields the access token acquired at the last login time by the user agent 
      */
     public function refresh(Request $request) {
-        $user = $request->user();
+        $user = $this->_verifyRefreshToken($request);
+
+        // In case the user logs in on multiple devices, the following command still keeps
+        // him logged in since the refresh tokens on other devices remain, thanks to which
+        // the client could obtain a new access token. 
         $user->tokens()->delete();
 
-        $this->_sendRefreshToken($request);
-        return $this->_respondAccessToken($request);
+        return response()->json([
+            'accessToken' => $this->_issueAccessToken($user)
+        ], 200);
     }
 
     public function logout(Request $request) {
         $user = $request->user();
-        $user->tokens()->delete();
 
-        $this->_forgetRefreshToken($request);
+        $userWithRefreshToken = $this->_verifyRefreshToken($request);
+
+        if ($user->id != $userWithRefreshToken->id) {
+            throw new HttpException(401, 'UNAUTHENTICATED');
+        }
+
+        // https://laravel.com/docs/10.x/sanctum#revoking-tokens
+        $user->currentAccessToken()->delete();
+
+        Cookie::queue(
+            Cookie::forget('refreshToken')
+        );
+
         return response()->json(new stdClass, 200);
     }
+
+    // TODO: Log out all/all other devices
 }

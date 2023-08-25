@@ -10,7 +10,7 @@ class UserController extends Controller
 {
     public function signup(Request $request) {
         $userInfo = PerfectValidator::validate($request, [
-            'email' => 'User.email',
+            'email' => 'User.email.new',
             'password' => 'User.password',
             'name' => 'User.name'
         ]);
