@@ -4,8 +4,6 @@ namespace App\Http\Controllers;
 
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Auth;
-// In API routes, Cookie facade doesn't work.
-// https://laracasts.com/discuss/channels/laravel/cookiequeue-not-attaching-to-response
 use Illuminate\Support\Facades\Cookie;
 use App\Exceptions\HttpException;
 use App\Helpers\PerfectValidator;
@@ -39,20 +37,22 @@ class AuthController extends Controller
             $accessToken = $this->_issueAccessToken($user);
 
             $refreshToken = RefreshTokenManager::issueAuth($request);
-    
-            return response()->json(compact('accessToken'), 200)
-            ->cookie('refreshToken', $refreshToken,
-                0,
-                null,
-                // route('auth.index'), // so that the cookie can be read by all auth routes, including auth.login, auth.refresh, and auth.logout. For more info, visit $APP_URL/api/auth.
-                // TODO: The following arguments should be changed in prod:
-                null,      // domain
-                false,     // secure
-                true       // httpOnly
+
+            Cookie::queue(
+                Cookie::forever(
+                    'refreshToken',                          // name
+                    $refreshToken,                           // value
+                    route('auth.index'),                     // path - so that the cookie can be read by all auth routes, including auth.login, auth.refresh, and auth.logout. For more info, visit $APP_URL/api/auth.
+                    null,                                    // domain
+                    (config('app.env') === 'production'),    // secure
+                    true,                                    // httpOnly
+                )
             );
+    
+            return response()->json(compact('accessToken'), 200);
         }
 
-        throw new HttpException(401, 'CREDENTIALS_INVALID');
+        throw new HttpException(401, 'CREDENTIALS_UNRECOGNIZED');
     }
 
     /**
@@ -84,7 +84,11 @@ class AuthController extends Controller
         $user->currentAccessToken()->delete();
 
         Cookie::queue(
-            Cookie::forget('refreshToken')
+            Cookie::forget(
+                'refreshToken',      // name
+                route('auth.index'), // path
+                null                 // domain
+            )
         );
 
         return response()->json(new stdClass, 200);
