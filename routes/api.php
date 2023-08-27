@@ -35,9 +35,8 @@ Route::middleware('api')->group(function () {
         Route::post('/logout', [AuthController::class, 'logout'])->middleware('auth:sanctum')->name('logout');
     });
 
-    Route::name('user')->prefix('/user')->group(function () {
-        Route::post('/', [UserController::class, 'signup']);
-        Route::post('/signup', [UserController::class, 'signup']);
-        Route::get('/', [UserController::class, 'index'])->middleware('auth:sanctum');
+    Route::name('user.')->prefix('/user')->group(function () {
+        Route::post('/', [UserController::class, 'signup'])->name('signup');
+        Route::get('/', [UserController::class, 'index'])->middleware('auth:sanctum')->name('index');
     });
 });
