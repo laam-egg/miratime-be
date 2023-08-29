@@ -13,7 +13,8 @@ return new class extends Migration
     {
         Schema::create('refresh_token_validations', function (Blueprint $table) {
             $table->id();
-            $table->foreignId('user_id')->references('id')->on('users')->onDelete('cascade')->onUpdate('cascade');
+            $table->foreignId('user_id')->references('id')->on('users')->cascadeOnDelete()->cascadeOnUpdate();
+            $table->index(['user_id']);
         });
     }
 
@@ -22,10 +23,12 @@ return new class extends Migration
      */
     public function down(): void
     {
-        Schema::table('refresh_token_validations', function (Blueprint $table) {
-            $table->dropForeign(['user_id']);
-            // $table->dropIndex(['user_id']);
-        });
-        Schema::dropIfExists('refresh_token_validations');
+        if (Schema::hasTable('refresh_token_validations')) {
+            Schema::table('refresh_token_validations', function (Blueprint $table) {
+                $table->dropForeign(['user_id']);
+                $table->dropIndex(['user_id']);
+                $table->drop();
+            });
+        }
     }
 };
